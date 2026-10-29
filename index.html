@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Калькулятор</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#101322;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}.calc{width:min(94vw,360px);background:#1c2035;border:1px solid #3b3b57;border-radius:24px;padding:22px;box-shadow:0 18px 60px #0005}.label{color:#bba3ff;font-size:13px;letter-spacing:2px;text-transform:uppercase}.expression{height:30px;text-align:right;color:#a7a4c2;margin-top:18px}.display{font-size:42px;text-align:right;overflow:hidden;text-overflow:ellipsis;padding:0 0 20px}.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}button{border:0;border-radius:14px;padding:18px 0;font-size:21px;cursor:pointer;color:white;background:#303650}button:hover{filter:brightness(1.2)}button:active{transform:scale(.97)}button.utility{background:#45465e}button.operation{background:#60429a}button.equals{background:#a980ff;color:#170e2e;font-weight:bold}button.zero{grid-column:span 2}.hint{text-align:center;color:#9390ac;font-size:12px;margin-top:16px}
+</style>
+</head>
+<body>
+<main class="calc" aria-label="Калькулятор">
+<div class="label">Калькулятор</div>
+<div class="expression" id="expression"></div>
+<div class="display" id="display" aria-live="polite">0</div>
+<div class="keys" id="keys">
+<button class="utility" data-action="clear">AC</button><button class="utility" data-action="delete">⌫</button><button class="utility" data-action="percent">%</button><button class="operation" data-action="operator" data-value="/">÷</button>
+<button data-action="digit" data-value="7">7</button><button data-action="digit" data-value="8">8</button><button data-action="digit" data-value="9">9</button><button class="operation" data-action="operator" data-value="*">×</button>
+<button data-action="digit" data-value="4">4</button><button data-action="digit" data-value="5">5</button><button data-action="digit" data-value="6">6</button><button class="operation" data-action="operator" data-value="-">−</button>
+<button data-action="digit" data-value="1">1</button><button data-action="digit" data-value="2">2</button><button data-action="digit" data-value="3">3</button><button class="operation" data-action="operator" data-value="+">+</button>
+<button class="zero" data-action="digit" data-value="0">0</button><button data-action="decimal">,</button><button class="equals" data-action="equals">=</button>
+</div>
+<div class="hint">Можно использовать клавиатуру</div>
+</main>
+<script>
+const display=document.getElementById('display');
+const expression=document.getElementById('expression');
+let current='0',previous=null,operator=null,startNew=false;
+const symbol={'+':'+','-':'−','*':'×','/':'÷'};
+function format(n){return Number.isFinite(n)?String(Number(n.toPrecision(12))):'Ошибка';}
+function calculate(a,b,op){switch(op){case '+':return a+b;case '-':return a-b;case '*':return a*b;case '/':return b===0?NaN:a/b;default:return b;}}
+function render(){display.textContent=current.replace('.',',');}
+function act(action,value){
+ if(action==='clear'){current='0';previous=null;operator=null;startNew=false;expression.textContent='';}
+ if(action==='digit'){if(startNew||current==='Ошибка'){current=value;startNew=false;}else if(current.replace(/[^0-9]/g,'').length<13){current=current==='0'?value:current+value;}}
+ if(action==='decimal'){if(startNew||current==='Ошибка'){current='0';startNew=false;}if(!current.includes('.'))current+='.';}
+ if(action==='delete'){current=startNew||current.length<2?'0':current.slice(0,-1);startNew=false;}
+ if(action==='percent'&&current!=='Ошибка')current=format(Number(current)/100);
+ if(action==='operator'&&current!=='Ошибка'){
+   if(operator!==null&&!startNew)current=format(calculate(previous,Number(current),operator));
+   if(current!=='Ошибка'){previous=Number(current);operator=value;startNew=true;expression.textContent=current.replace('.',',')+' '+symbol[value];}
+ }
+ if(action==='equals'&&operator!==null&&previous!==null){
+  const right=Number(current);expression.textContent=String(previous).replace('.',',')+' '+symbol[operator]+' '+current.replace('.',',')+' =';
+  current=format(calculate(previous,right,operator));operator=null;previous=null;startNew=true;
+ }
+ render();
+}
+document.getElementById('keys').addEventListener('click',event=>{const btn=event.target.closest('button[data-action]');if(btn)act(btn.dataset.action,btn.dataset.value);});
+document.addEventListener('keydown',event=>{
+ let action=null,value=event.key;
+ if(/^[0-9]$/.test(value))action='digit';
+ else if(value==='.'||value===',')action='decimal';
+ else if(['+','-','*','/'].includes(value))action='operator';
+ else if(value==='Enter'||value==='=')action='equals';
+ else if(value==='Backspace')action='delete';
+ else if(value==='Escape')action='clear';
+ else if(value==='%')action='percent';
+ if(action){event.preventDefault();act(action,value);}
+});
+</script>
+</body>
+</html>
