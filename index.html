@@ -4,14 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Калькулятор</title>
+<script>
+try{if(localStorage.getItem('calculator-theme')==='light')document.documentElement.dataset.theme='light';}catch{}
+</script>
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#101322;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}.calc{width:min(94vw,360px);background:#1c2035;border:1px solid #3b3b57;border-radius:24px;padding:22px;box-shadow:0 18px 60px #0005}.label{color:#bba3ff;font-size:13px;letter-spacing:2px;text-transform:uppercase}.expression{height:30px;text-align:right;color:#a7a4c2;margin-top:18px}.display{font-size:42px;text-align:right;overflow:hidden;text-overflow:ellipsis;padding:0 0 20px}.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}button{border:0;border-radius:14px;padding:18px 0;font-size:21px;cursor:pointer;color:white;background:#303650}button:hover{filter:brightness(1.2)}button:active{transform:scale(.97)}button.utility{background:#45465e}button.operation{background:#60429a}button.equals{background:#a980ff;color:#170e2e;font-weight:bold}button.zero{grid-column:span 2}.hint{text-align:center;color:#9390ac;font-size:12px;margin-top:16px}
 .history{margin-top:22px;padding-top:18px;border-top:1px solid #3b3b57}.history-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.history-header h2{margin:0;font-size:13px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:#bba3ff}.history-clear{padding:8px 12px;font-size:12px;border-radius:10px;background:#45465e}.history-list{max-height:180px;overflow-y:auto;overflow-wrap:anywhere;margin:12px 0 0;padding:0;list-style:none;color:#a7a4c2;font-size:14px}.history-list li{padding:9px 0;border-bottom:1px solid #303650}.history-empty{margin:12px 0 0;color:#9390ac;font-size:12px}
+:root{color-scheme:dark}.calc-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.theme-toggle{width:36px;height:36px;padding:0;border-radius:10px;font-size:20px;display:grid;place-items:center}.theme-toggle:focus-visible{outline:2px solid #a980ff;outline-offset:3px}
+:root[data-theme="light"]{color-scheme:light}html[data-theme="light"] body{background:#f0edf7;color:#221b35}html[data-theme="light"] .calc{background:#fff;border-color:#d7cfe6;box-shadow:0 18px 60px #34204c1a}html[data-theme="light"] .label,html[data-theme="light"] .history-header h2{color:#7045a3}html[data-theme="light"] .expression,html[data-theme="light"] .history-list{color:#60566f}html[data-theme="light"] .hint,html[data-theme="light"] .history-empty{color:#70647f}html[data-theme="light"] button{background:#ede8f5;color:#221b35}html[data-theme="light"] button.utility,html[data-theme="light"] .history-clear{background:#ded6eb}html[data-theme="light"] button.operation{background:#7752ab;color:#fff}html[data-theme="light"] button.equals{background:#a980ff;color:#170e2e}html[data-theme="light"] .history{border-color:#d7cfe6}html[data-theme="light"] .history-list li{border-color:#ede8f5}
 </style>
 </head>
 <body>
 <main class="calc" aria-label="Калькулятор">
-<div class="label">Калькулятор</div>
+<div class="calc-header"><div class="label">Калькулятор</div><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Включить светлую тему" title="Включить светлую тему"><span id="theme-icon" aria-hidden="true">☀️</span></button></div>
 <div class="expression" id="expression"></div>
 <div class="display" id="display" aria-live="polite">0</div>
 <div class="keys" id="keys">
@@ -29,6 +34,21 @@
 </section>
 </main>
 <script>
+const themeToggle=document.getElementById('theme-toggle');
+function renderTheme(){
+ const light=document.documentElement.dataset.theme==='light';
+ document.getElementById('theme-icon').textContent=light?'🌙':'☀️';
+ const label=light?'Включить тёмную тему':'Включить светлую тему';
+ themeToggle.setAttribute('aria-label',label);themeToggle.title=label;
+}
+themeToggle.addEventListener('click',()=>{
+ const theme=document.documentElement.dataset.theme==='light'?'dark':'light';
+ document.documentElement.dataset.theme=theme;
+ try{localStorage.setItem('calculator-theme',theme);}catch{}
+ renderTheme();
+});
+themeToggle.addEventListener('keydown',event=>{if(event.key==='Enter')event.stopPropagation();});
+renderTheme();
 const display=document.getElementById('display');
 const expression=document.getElementById('expression');
 let current='0',previous=null,operator=null,startNew=false;
