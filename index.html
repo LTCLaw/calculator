@@ -6,6 +6,7 @@
 <title>Калькулятор</title>
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#101322;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff}.calc{width:min(94vw,360px);background:#1c2035;border:1px solid #3b3b57;border-radius:24px;padding:22px;box-shadow:0 18px 60px #0005}.label{color:#bba3ff;font-size:13px;letter-spacing:2px;text-transform:uppercase}.expression{height:30px;text-align:right;color:#a7a4c2;margin-top:18px}.display{font-size:42px;text-align:right;overflow:hidden;text-overflow:ellipsis;padding:0 0 20px}.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}button{border:0;border-radius:14px;padding:18px 0;font-size:21px;cursor:pointer;color:white;background:#303650}button:hover{filter:brightness(1.2)}button:active{transform:scale(.97)}button.utility{background:#45465e}button.operation{background:#60429a}button.equals{background:#a980ff;color:#170e2e;font-weight:bold}button.zero{grid-column:span 2}.hint{text-align:center;color:#9390ac;font-size:12px;margin-top:16px}
+.history{margin-top:22px;padding-top:18px;border-top:1px solid #3b3b57}.history-header{display:flex;align-items:center;justify-content:space-between;gap:12px}.history-header h2{margin:0;font-size:13px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:#bba3ff}.history-clear{padding:8px 12px;font-size:12px;border-radius:10px;background:#45465e}.history-list{max-height:180px;overflow-y:auto;overflow-wrap:anywhere;margin:12px 0 0;padding:0;list-style:none;color:#a7a4c2;font-size:14px}.history-list li{padding:9px 0;border-bottom:1px solid #303650}.history-empty{margin:12px 0 0;color:#9390ac;font-size:12px}
 </style>
 </head>
 <body>
@@ -21,12 +22,39 @@
 <button class="zero" data-action="digit" data-value="0">0</button><button data-action="decimal">,</button><button class="equals" data-action="equals">=</button>
 </div>
 <div class="hint">Можно использовать клавиатуру</div>
+<section class="history" aria-labelledby="history-title">
+<div class="history-header"><h2 id="history-title">История</h2><button class="history-clear" id="clear-history" type="button">Очистить</button></div>
+<ol class="history-list" id="history-list" aria-label="Последние 10 вычислений" tabindex="0"></ol>
+<p class="history-empty" id="history-empty">История пока пуста</p>
+</section>
 </main>
 <script>
 const display=document.getElementById('display');
 const expression=document.getElementById('expression');
 let current='0',previous=null,operator=null,startNew=false;
 const symbol={'+':'+','-':'−','*':'×','/':'÷'};
+const historyList=document.getElementById('history-list');
+const historyEmpty=document.getElementById('history-empty');
+const historyKey='calculator-history';
+let history=[];
+try{
+ const saved=JSON.parse(localStorage.getItem(historyKey)||'[]');
+ if(Array.isArray(saved))history=saved.filter(item=>typeof item==='string').slice(-10);
+}catch{}
+function renderHistory(){
+ historyList.replaceChildren();
+ for(const entry of history){const item=document.createElement('li');item.textContent=entry;historyList.appendChild(item);}
+ historyEmpty.hidden=history.length>0;
+ historyList.hidden=history.length===0;
+ historyList.scrollTop=historyList.scrollHeight;
+}
+function saveHistory(){try{localStorage.setItem(historyKey,JSON.stringify(history));}catch{}}
+function addHistory(calculation,result){
+ history.push(calculation+' '+result.replace('.',','));
+ history=history.slice(-10);saveHistory();renderHistory();
+}
+document.getElementById('clear-history').addEventListener('click',()=>{history=[];saveHistory();renderHistory();});
+renderHistory();
 function format(n){return Number.isFinite(n)?String(Number(n.toPrecision(12))):'Ошибка';}
 function calculate(a,b,op){switch(op){case '+':return a+b;case '-':return a-b;case '*':return a*b;case '/':return b===0?NaN:a/b;default:return b;}}
 function render(){display.textContent=current.replace('.',',');}
@@ -37,12 +65,15 @@ function act(action,value){
  if(action==='delete'){current=startNew||current.length<2?'0':current.slice(0,-1);startNew=false;}
  if(action==='percent'&&current!=='Ошибка')current=format(Number(current)/100);
  if(action==='operator'&&current!=='Ошибка'){
-   if(operator!==null&&!startNew)current=format(calculate(previous,Number(current),operator));
+   if(operator!==null&&!startNew){
+    const calculation=String(previous).replace('.',',')+' '+symbol[operator]+' '+current.replace('.',',')+' =';
+    current=format(calculate(previous,Number(current),operator));addHistory(calculation,current);
+   }
    if(current!=='Ошибка'){previous=Number(current);operator=value;startNew=true;expression.textContent=current.replace('.',',')+' '+symbol[value];}
  }
  if(action==='equals'&&operator!==null&&previous!==null){
   const right=Number(current);expression.textContent=String(previous).replace('.',',')+' '+symbol[operator]+' '+current.replace('.',',')+' =';
-  current=format(calculate(previous,right,operator));operator=null;previous=null;startNew=true;
+  current=format(calculate(previous,right,operator));addHistory(expression.textContent,current);operator=null;previous=null;startNew=true;
  }
  render();
 }
